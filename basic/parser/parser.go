@@ -1,121 +1,154 @@
 package parser
 
 import (
-	"gumihoy.com/sql/basic/ast"
 	"gumihoy.com/sql/basic/ast/statement"
-	"gumihoy.com/sql/basic/parser/kind"
-	"gumihoy.com/sql/dbtype"
+	"gumihoy.com/sql/db"
 	"strconv"
 )
 
 type Config struct {
-	DBType dbtype.DBType
+	DBType db.DBType
 }
 
-func NewConfig(dbType dbtype.DBType) Config {
+func NewConfig(dbType db.DBType) Config {
 	var c Config
 	c.DBType = dbType
 	return c
 }
 
-type IParser interface {
-	Lexer() ILexer
-	ParseCreateStatement() statement.ISQLStatement
-	ParseDropStatement() statement.ISQLStatement
+type ISQLParser interface {
+	Lexer() ISQLLexer
+	Token() *Token
+	Kind() *Kind
 
-	ParseDeleteStatement() statement.ISQLStatement
-	ParseInsertStatement() statement.ISQLStatement
-	ParseUpdateStatement() statement.ISQLStatement
-	ParseSelectStatement() statement.ISQLStatement
+	Accept(kind *Kind) bool
+	AcceptWithError(kind *Kind, error bool) bool
+
+	AcceptAndNextToken(kind *Kind) bool
+	AcceptAndNextTokenWithError(kind *Kind, error bool) bool
+
+	StringValue() string
 }
 
-func ParseStatements(parser IParser) []ast.ISQLObject {
-	var statements []ast.ISQLObject
-
-	NextToken(parser.Lexer())
-	token := parser.Lexer().Token()
-	for {
-		k := token.Kind
-		if k == kind.EOF {
-			break
-		}
-
-		if k == kind.SEMI {
-			if len(statements) > 0 {
-				stmt := statements[len(statements)]
-				stmt.SetAfterSemi(true)
-			}
-			continue
-		}
-		stmt := ParseStatement(parser)
-		if stmt != nil {
-			statements = append(statements, stmt)
-		}
-	}
-	return statements
+type SQLParser struct {
+	lexer ISQLLexer
 }
 
-func ParseStatement(parser IParser) statement.ISQLStatement {
-	token := parser.Lexer().Token()
-	switch token.Kind {
-	case kind.ALTER:
-		return nil
-	case kind.CREATE:
-		return nil
-	case kind.DELETE:
-		return nil
-	case kind.INSERT:
-		return nil
-	case kind.UPDATE:
-		return nil
-	case kind.SELECT:
-		return parser.ParseSelectStatement()
-	default:
-		panic("TODO. line " + strconv.Itoa(token.line) + ", col" + strconv.Itoa(token.col) + " UnSupport " + string(token.Kind))
-	}
-	return nil
-}
-
-type Parser struct {
-	lexer ILexer
-}
-
-func (parser *Parser) Lexer() ILexer {
+func (parser *SQLParser) Lexer() ISQLLexer {
 	return parser.lexer
 }
 
-func (parser *Parser) ParseCreateStatement() statement.ISQLStatement {
+func (parser *SQLParser) SetLexer(lexer ISQLLexer) {
+	parser.lexer = lexer
+}
+
+func (parser *SQLParser) Token() *Token {
+	return parser.lexer.Token()
+}
+
+func (parser *SQLParser) Kind() *Kind {
+	return parser.Token().Kind
+}
+
+func (x *SQLParser) Accept(kind *Kind) bool {
+	return x.AcceptWithError(kind, false)
+}
+
+func (x *SQLParser) AcceptWithError(kind *Kind, error bool) bool {
+	if x.Kind() == kind ||
+		(x.Kind() == IDENTIFIER &&
+			kind.Equals(x.StringValue())) {
+		return true
+	}
+
+	if error {
+		panic("Syntax Error: expected " + x.Token().Error() + ", actual " + x.StringValue())
+	}
+	return false
+}
+
+func (x *SQLParser) AcceptAndNextToken(kind *Kind) bool {
+	return x.AcceptAndNextTokenWithError(kind, false)
+}
+
+func (x *SQLParser) AcceptAndNextTokenWithError(kind *Kind, error bool) bool {
+	if x.Kind() == kind ||
+		(x.Kind() == IDENTIFIER &&
+			kind.Equals(x.StringValue())) {
+		NextTokenByParser(x)
+		return true
+	}
+	if error {
+		panic("Syntax Error: expected " + x.Token().Error() + ", actual " + x.StringValue())
+	}
+	return false
+}
+
+// func AcceptAndNextToken(parser ISQLParser, kind *Kind) bool {
+// 	return AcceptAndNextTokenWithError(parser, kind, false)
+// }
+// func AcceptAndNextTokenWithError(parser ISQLParser, kind *Kind, error bool) bool {
+// 	if parser.Kind() == kind ||
+// 		(parser.Kind() == IDENTIFIER &&
+// 			kind.Equals(parser.StringValue())) {
+// 		NextTokenByParser(parser)
+// 		return true
+// 	}
+// 	if error {
+// 		panic("Syntax Error: expected " + parser.Token().Error() + ", actual " + parser.StringValue())
+// 	}
+// 	return false
+// }
+
+func NextTokenByParser(parser ISQLParser) {
+	NextToken(parser.Lexer())
+}
+
+func (parser *SQLParser) StringValue() string {
+	return parser.lexer.StringValue()
+}
+
+func (parser *SQLParser) IntegerValue() int64 {
+	value, error := strconv.ParseInt(parser.StringValue(), 10, 64)
+	if error != nil {
+		panic("")
+	}
+	return value
+}
+
+func (parser *SQLParser) ParseCreateStatement() statement.ISQLStatement {
 	panic("implement me")
 }
 
-func (parser *Parser) ParseDropStatement() statement.ISQLStatement {
+func (parser *SQLParser) ParseDropStatement() statement.ISQLStatement {
 	panic("implement me")
 }
 
-func (parser *Parser) ParseDeleteStatement() statement.ISQLStatement {
+func (parser *SQLParser) ParseDeleteStatement() statement.ISQLStatement {
 	panic("implement me")
 }
 
-func (parser *Parser) ParseInsertStatement() statement.ISQLStatement {
+func (parser *SQLParser) ParseInsertStatement() statement.ISQLStatement {
 	panic("implement me")
 }
 
-func (parser *Parser) ParseUpdateStatement() statement.ISQLStatement {
+func (parser *SQLParser) ParseUpdateStatement() statement.ISQLStatement {
 	panic("implement me")
 }
 
-func NewParserBySQL(sql string) *Parser {
+func IsIdentifier(kind *Kind) bool {
+	if kind == IDENTIFIER ||
+		kind == IDENTIFIER_DOUBLE_QUOTE ||
+		kind == IDENTIFIER_REVERSE_QUOTE {
+		return true
+	}
+	return false
+}
+
+func NewParserBySQL(sql string) *SQLParser {
 	return NewParserByLexer(NewLexer(sql))
 }
 
-func NewParserByLexer(lexer ILexer) *Parser {
-	return &Parser{lexer}
-}
-
-func (parser *Parser) ParseSelectStatement() statement.ISQLStatement {
-	return nil
-}
-
-func ParseExpr() {
-
+func NewParserByLexer(lexer ISQLLexer) *SQLParser {
+	return &SQLParser{lexer}
 }

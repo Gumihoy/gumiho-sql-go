@@ -11,16 +11,15 @@ type IOracleVisitor interface {
 }
 
 type OracleVisitorAdapter struct {
-	visitor.SQLVisitorAdapter
+	*visitor.SQLVisitorAdapter
 }
 
 type OracleOutputVisitor struct {
 	*visitor.SQLOutputVisitor
 }
 
-func NewOutputVisitor(builder strings.Builder, config config.Output) *OracleOutputVisitor {
+func NewOutputVisitor(builder *strings.Builder, config config.Output) *OracleOutputVisitor {
 	x := new(OracleOutputVisitor)
-	x.Builder = builder
-	x.Config = config
+	x.SQLOutputVisitor = visitor.NewOutputVisitor(builder, config)
 	return x
 }

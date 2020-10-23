@@ -13,5 +13,5 @@ func NewError(line int, col int, message string) *Error {
 }
 
 func (error *Error) Error() string {
-	return "line " + strconv.Itoa(error.line) + ", col " + strconv.Itoa(error.col) + error.message
+	return "Line " + strconv.Itoa(error.line) + ", Col " + strconv.Itoa(error.col) + error.message
 }

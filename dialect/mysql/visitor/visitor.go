@@ -6,22 +6,32 @@ import (
 	"strings"
 )
 
-type IMySQLASTVisitor interface {
+type IMySQLVisitor interface {
 	visitor.ISQLVisitor
 }
 
-type MySQLASTVisitorAdapter struct {
-	IMySQLASTVisitor
+type MySQLVisitorAdapter struct {
+	*visitor.SQLVisitorAdapter
 }
 
-type MySQLASTOutputVisitor struct {
-	*MySQLASTVisitorAdapter
+func NewVisitorAdapter() *MySQLVisitorAdapter {
+	return NewVisitorAdapterWithVisitorAdapter(visitor.NewVisitorAdapter())
+}
+
+func NewVisitorAdapterWithVisitorAdapter(adapter *visitor.SQLVisitorAdapter) *MySQLVisitorAdapter {
+	return &MySQLVisitorAdapter{adapter}
+}
+
+type MySQLOutputVisitor struct {
 	*visitor.SQLOutputVisitor
 }
 
-func NewOutputVisitor(builder strings.Builder, config config.Output) *MySQLASTOutputVisitor {
-	x := new(MySQLASTOutputVisitor)
-	x.Builder = builder
-	x.Config = config
+func NewOutputVisitor(builder *strings.Builder, config config.Output) *MySQLOutputVisitor {
+	x := new(MySQLOutputVisitor)
+	x.SQLOutputVisitor = visitor.NewOutputVisitor(builder, config)
 	return x
 }
+
+
+
+

@@ -11,17 +11,25 @@ type IPostgreSQLVisitor interface {
 }
 
 type PostgreSQLVisitorAdapter struct {
-	IPostgreSQLVisitor
+	*visitor.SQLVisitorAdapter
+}
+
+func NewSQLVisitorAdapter() *PostgreSQLVisitorAdapter {
+	return NewSQLVisitorAdapterWithVisitorAdapter(visitor.NewVisitorAdapter())
+}
+
+func NewSQLVisitorAdapterWithVisitorAdapter(adapter *visitor.SQLVisitorAdapter) *PostgreSQLVisitorAdapter {
+	x := new(PostgreSQLVisitorAdapter)
+	x.SQLVisitorAdapter = adapter
+	return x
 }
 
 type PostgreSQLOutputVisitor struct {
-	*PostgreSQLVisitorAdapter
 	*visitor.SQLOutputVisitor
 }
 
-func NewOutputVisitor(builder strings.Builder, config config.Output) *PostgreSQLOutputVisitor {
+func NewOutputVisitor(builder *strings.Builder, config config.Output) *PostgreSQLOutputVisitor {
 	x := new(PostgreSQLOutputVisitor)
-	x.Builder = builder
-	x.Config = config
+	x.SQLOutputVisitor = visitor.NewOutputVisitor(builder, config)
 	return x
 }

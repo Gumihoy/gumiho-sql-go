@@ -4,16 +4,16 @@ import (
 	"gumihoy.com/sql/basic/parser"
 )
 
-type Parser struct {
-	*parser.Parser
+type OracleParser struct {
+	*parser.SQLParser
 }
 
-func NewParserBySQL(sql string) Parser {
-	var parser Parser
-
-	return parser
+func NewParserBySQL(sql string) *OracleParser {
+	var x OracleParser
+	x.SQLParser = parser.NewParserBySQL(sql)
+	return &x
 }
 
-func ParseExpr() {
-
+func NewParserByLexer(lexer parser.ISQLLexer) *OracleParser {
+	return &OracleParser{parser.NewParserByLexer(lexer)}
 }

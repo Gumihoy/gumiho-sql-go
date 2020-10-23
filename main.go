@@ -6,53 +6,92 @@ import (
 	"strings"
 )
 
-type IHuman interface {
-	SayHi()
+/**
+    basic
+	/
+   /
+	m
+*/
+
+type L interface {
+	Life()
+	Say()
 }
 
-type Human struct {
-	name  string
-	age   int
-	phone string
+type P struct {
+	l string
 }
 
-type Student struct {
-	Human  //匿名字段
-	school string
+func (x *P) String() string {
+	return "p:String: " + x.l
 }
 
-type Employee struct {
-	Human   //匿名字段
-	company string
+func NewP(l string) *P {
+	return &P{l}
 }
 
-//在human上面定义了一个method
-func (h *Human) SayHi() {
-	fmt.Printf("Hi, I am %s you can call me on %s\n", h.name, h.phone)
+func (p *P) Life() {
+	fmt.Println("p:" + p.l)
 }
 
-func (h *Student) SayHi() {
-	fmt.Println(" Studio ....")
+func (p *P) Say() {
+	fmt.Println("p:" + p.l)
 }
 
-func (h *Employee) SayHi() {
-	fmt.Println(" Employee ....")
+type ExP struct {
+	*P
 }
 
-type S struct {
-	h IHuman
+func newExp(l string) *ExP {
+	return &ExP{NewP(l)}
 }
 
-type S2 struct {
-	S
+func (e *ExP) Say() {
+	fmt.Println("e:" + e.l)
+}
+
+type SeleP struct {
+	*P
+	Exp L
+}
+
+// type Kind struct {
+// 	name string
+// }
+
+type Kind string
+
+// func NewKind(name string) *Kind {
+// 	return &Kind{name: name}
+// }
+//
+// func (kind *Kind) String() string  {
+// 	return kind.name
+// }
+
+var (
+	EQ   = "="
+	COMM = "="
+	SEMI = "="
+)
+
+func newSeleP(l string) *SeleP {
+
+	x := new(SeleP)
+	x.P = NewP(l)
+	// x.exp = newExp(l)
+	// x.l = x.exp.l
+	return x
 }
 
 func main() {
-	//message := make([]rune, 10)
-	var m strings.Builder
-	m.WriteString("line ")
-	m.WriteRune(1)
-	messa := "line " + strconv.Itoa(1) + ", col " + strconv.Itoa(0) + ""
-	fmt.Println(messa)
-	fmt.Println(m.String())
+	a := '孓'
+	fmt.Println(a)
+	fmt.Println(strconv.ParseInt("ffff", 16, 64))
+}
+
+func p(out *strings.Builder) {
+	out.WriteString("xxxx")
+
+	fmt.Println("p", out.String())
 }

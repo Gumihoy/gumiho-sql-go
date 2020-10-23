@@ -1,16 +1,16 @@
 package config
 
-type Lexer struct {
+type LexerConfig struct {
 	KeepComment bool
 }
 
-func NewLexer() *Lexer {
-	l := new(Lexer)
+func NewLexer() *LexerConfig {
+	l := new(LexerConfig)
 	return l
 }
 
 type Output struct {
-	*Lexer
+	*LexerConfig
 	LowerCase      bool
 	PrintAfterSemi bool
 }

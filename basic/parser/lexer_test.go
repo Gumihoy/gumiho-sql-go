@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 )
 
@@ -10,5 +11,5 @@ func TestLexer_NextToken(t *testing.T) {
 	fmt.Println(le)
 }
 func TestIsSQLIdentifierPart(t *testing.T) {
-	//fmt.Println(issql('@'))
+	fmt.Println(strconv.ParseFloat("+6.34", 64))
 }

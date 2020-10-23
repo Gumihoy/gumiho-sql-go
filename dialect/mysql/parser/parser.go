@@ -4,11 +4,14 @@ import (
 	"gumihoy.com/sql/basic/parser"
 )
 
-type Parser struct {
-	*parser.Parser
+type MySQLParser struct {
+	*parser.SQLParser
 }
 
-func NewParserBySQL(sql string) parser.IParser {
-	parser := Parser{parser.NewParserByLexer(NewLexer(sql))}
-	return parser
+func NewParserBySQL(sql string) *MySQLParser {
+	return &MySQLParser{parser.NewParserBySQL(sql)}
+}
+
+func NewParserByLexer(lexer parser.ISQLLexer) *MySQLParser {
+	return &MySQLParser{parser.NewParserByLexer(lexer)}
 }

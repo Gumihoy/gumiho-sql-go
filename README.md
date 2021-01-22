@@ -1,7 +1,8 @@
 # SQL Go
 
+## String SQL to Abstract Syntax Tree
 
-## Format
+## String SQL Format
 
 ``` go
 func TestFormat(t *testing.T) {

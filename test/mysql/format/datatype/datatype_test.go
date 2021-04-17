@@ -2,13 +2,29 @@ package datatype
 
 import (
 	"fmt"
-	"gumihoy.com/sql/dbtype"
-	"gumihoy.com/sql/format"
+	"github.com/Gumihoy/gumiho-sql-go/sql"
+	"github.com/Gumihoy/gumiho-sql-go/sql/db"
+	"strings"
 	"testing"
 )
 
 func Test_DataType_0(t *testing.T) {
-	sql := "select \"133      xxx\" , `x` from dual where ;"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := `CREATE TABLE test (
+					col1 NUMBER(5,2),
+					col2 FLOAT(5)
+				)`
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `CREATE TABLE test (
+	col1 NUMBER(5, 2),
+	col2 FLOAT(5)
+)`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }

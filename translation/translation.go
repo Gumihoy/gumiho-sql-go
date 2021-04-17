@@ -1,355 +1,248 @@
 package translation
 
 import (
-	"gumihoy.com/sql/basic/ast"
-	"gumihoy.com/sql/basic/ast/expr"
-	"gumihoy.com/sql/basic/ast/expr/datatype"
-	"gumihoy.com/sql/db"
-	"gumihoy.com/sql/factory"
+	"github.com/Gumihoy/gumiho-sql-go/sql"
+	"github.com/Gumihoy/gumiho-sql-go/sql/basic/visitor"
+	"github.com/Gumihoy/gumiho-sql-go/sql/db"
+	"github.com/Gumihoy/gumiho-sql-go/sql/db/mysql"
+	"github.com/Gumihoy/gumiho-sql-go/sql/db/postgresql"
+	"github.com/Gumihoy/gumiho-sql-go/translation/config"
+	"github.com/Gumihoy/gumiho-sql-go/translation/result"
+	visitor2 "github.com/Gumihoy/gumiho-sql-go/translation/visitor"
+	mysql2 "github.com/Gumihoy/gumiho-sql-go/translation/visitor/oracle/mysql"
 	"strings"
 )
 
-type DoubleQuoteActionType int
+/**
+ *
+ */
+func OracleToMySQL(sourceSQL string) *result.SQLTransformResult {
+	return OracleToMySQLWithConfig(sourceSQL, nil)
+}
 
-const (
-	NONE DoubleQuoteActionType = iota
-)
-
-func (x *SQLTransformConfig) FindTableMapping(tableName expr.ISQLName) *TableMapping {
-	lowerFullName := tableName.StringName()
-	lowerName := tableName.SimpleStringName()
-
-	mapping := x.TableMappings[lowerFullName]
-	if mapping != nil {
-		return mapping
+func OracleToMySQLWithConfig(sourceSQL string, transformConfig *config.SQLTransformConfig) *result.SQLTransformResult {
+	if transformConfig == nil {
+		transformConfig = config.NewSQLTransformConfig()
 	}
-
-	return x.TableMappings[lowerName]
+	transformConfig.SourceDBType = db.Oracle
+	transformConfig.TargetDBType = db.MySQL
+	transformConfig.TargetDBVersion = mysql.Version_5_6
+	return Translate(sourceSQL, transformConfig)
 }
 
-func (x *SQLTransformConfig) AddTableMapping(tableMapping *TableMapping) {
-	if tableMapping == nil || len(tableMapping.name) == 0 {
-		return
+/**
+ *
+ */
+func OracleToEDB(sourceSQL string) *result.SQLTransformResult {
+	return OracleToEDBWithConfig(sourceSQL, nil)
+}
+
+func OracleToEDBWithConfig(sourceSQL string, transformConfig *config.SQLTransformConfig) *result.SQLTransformResult {
+	if transformConfig == nil {
+		transformConfig = config.NewSQLTransformConfig()
 	}
-	x.TableMappings[tableMapping.name] = tableMapping
+	transformConfig.SourceDBType = db.Oracle
+	transformConfig.TargetDBType = db.EDB
+	return Translate(sourceSQL, transformConfig)
 }
 
-type SQLTransformConfig struct {
-	SourceDBType    db.DBType
-	TargetDBType    db.DBType
-	TargetDBVersion db.Version
-
-	/**
-	 * 表名、字段名移除引号
-	 */
-	doubleQuoteAction DoubleQuoteActionType
-
-	/**
-	 * 对象名(表、视图、PL/SQL等)、字段名移除schema
-	 */
-	IsRemoveSchema bool
-
-	// Map<String, TableMapping> tableMappings = new LinkedHashMap<>()
-	TableMappings map[string]*TableMapping
-
-	// 当前遍历下标
-	Index int
-	// 当前 sql 的 stmt LIST
-	// public List<ISQLObject> stmtList = new ArrayList<>()
-	Stmts []ast.ISQLObject
-
-	/**
-	 * CREATE index ON table 映射关系
-	 */
-	// 	private final ConcurrentHashMap<String, String> INDEX_TABLE_MAP = new ConcurrentHashMap<>()
-	//
-	// 	public String getIndexTable(String index) {
-	// 	return INDEX_TABLE_MAP.get(index)
-	// }
-	//
-	// 	public void setIndexTable(String index, String table) {
-	// 	INDEX_TABLE_MAP.put(index, table)
-	// }
+/**
+ *
+ */
+func OracleToPostgreSQL(sourceSQL string) *result.SQLTransformResult {
+	return OracleToPostgreSQLWithConfig(sourceSQL, nil)
 }
 
-func NewSQLTransformConfig() *SQLTransformConfig {
-	var x SQLTransformConfig
-
-	return &x
-}
-
-type TableMapping struct {
-	owner       string
-	name        string
-	targetOwner string
-	targetName  string
-	/**
-	 * 修改字段
-	 */
-	// public final Set<ColumnMapping> columnMappings = new LinkedHashSet<>()
-	columnMappings []*ColumnMapping
-	/**
-	 * 移除字段
-	 */
-	// public final Set<String> removeColumns = new LinkedHashSet<>()
-	removeColumns []string
-	/**
-	 * 添加字段
-	 */
-	// public final Set<ColumnMapping> addColumnMappings = new LinkedHashSet<>()
-	addColumnMappings []*ColumnMapping
-}
-
-func NewTableMapping(name string, targetName string, columnMappings ...*ColumnMapping) *TableMapping {
-	var x TableMapping
-	x.name = name
-	x.targetName = targetName
-
-	for _, columnMapping := range columnMappings {
-		x.AddColumnMapping(columnMapping)
+func OracleToPostgreSQLWithConfig(sourceSQL string, transformConfig *config.SQLTransformConfig) *result.SQLTransformResult {
+	if transformConfig == nil {
+		transformConfig = config.NewSQLTransformConfig()
 	}
-
-	return &x
+	transformConfig.SourceDBType = db.Oracle
+	transformConfig.TargetDBType = db.PostgreSQL
+	return Translate(sourceSQL, transformConfig)
 }
 
-func (x *TableMapping) findColumnMapping(columnName string) *ColumnMapping {
-	for _, columnMapping := range x.columnMappings {
-		if strings.EqualFold(columnMapping.name, columnName) {
-			return columnMapping
-		}
+/**
+ *
+ */
+func MySQLToOracle(sourceSQL string) *result.SQLTransformResult {
+	return MySQLToOracleWithConfig(sourceSQL, nil)
+}
+
+func MySQLToOracleWithConfig(sourceSQL string, transformConfig *config.SQLTransformConfig) *result.SQLTransformResult {
+	if transformConfig == nil {
+		transformConfig = config.NewSQLTransformConfig()
 	}
-
-	return nil
+	transformConfig.SourceDBType = db.MySQL
+	transformConfig.TargetDBType = db.Oracle
+	return Translate(sourceSQL, transformConfig)
 }
 
-func (x *TableMapping) AddColumnMapping(columnMapping *ColumnMapping) {
-	if columnMapping == nil {
-		return
-	}
-	// x.columnMappings.add(columnMapping)
-}
+func Translate(sourceSQL string, transformConfig *config.SQLTransformConfig) *result.SQLTransformResult {
 
-func (x *TableMapping) IsRemoveColumn(columnName string) bool {
-	for _, removeColumn := range x.removeColumns {
-		if strings.EqualFold(removeColumn, columnName) {
-			return true
-		}
-	}
+	sourceDBType := transformConfig.SourceDBType
+	targetDBType := transformConfig.TargetDBType
 
-	return false
-}
+	transformResult := result.NewSQLTransformResult(sourceSQL)
 
-func (x *TableMapping) AddRemoveColumn(columnName string) {
-	x.removeColumns = append(x.removeColumns, columnName)
-}
+	stmts := sql.ParseStatementsByDBType(sourceSQL, sourceDBType)
 
-func (x *TableMapping) addAddColumnMapping(columnMapping *ColumnMapping) {
-	if columnMapping == nil {
-		return
-	}
-	x.addColumnMappings = append(x.addColumnMappings, columnMapping)
-}
-
-type ColumnMapping struct {
-	name         string
-	targetName   string
-	dataType     datatype.ISQLDataType
-	defaultValue expr.ISQLExpr
-}
-
-func NewColumnMappingWithNameAndTargetName(name string, targetName string) *ColumnMapping {
-	var x ColumnMapping
-	x.name = name
-	x.targetName = targetName
-	return &x
-}
-
-func NewColumnMappingWith(name string, targetName string, dataType datatype.ISQLDataType) *ColumnMapping {
-	var x ColumnMapping
-	x.name = name
-	x.targetName = targetName
-	x.dataType = dataType
-	return &x
-}
-
-func NewColumnMapping(name string, targetName string, dataType datatype.ISQLDataType, defaultValue expr.ISQLExpr) *ColumnMapping {
-	var x ColumnMapping
-	x.name = name
-	x.targetName = targetName
-	x.dataType = dataType
-	x.defaultValue = defaultValue
-	return &x
-}
-
-func OracleToMySQL(sql string) *SQLTransformResult {
-	config := NewSQLTransformConfig()
-	return OracleToMySQLWithConfig(sql, config)
-}
-
-func OracleToMySQLWithConfig(sql string, config *SQLTransformConfig) *SQLTransformResult {
-	if config == nil {
-		config = NewSQLTransformConfig()
-	}
-	config.SourceDBType = db.Oracle
-	config.TargetDBType = db.MySQL
-	return Translate(sql, config)
-}
-
-func OracleToEDB(sql string) *SQLTransformResult {
-	config := NewSQLTransformConfig()
-	return OracleToEDBWithConfig(sql, config)
-}
-
-func OracleToEDBWithConfig(sql string, config *SQLTransformConfig) *SQLTransformResult {
-	if config == nil {
-		config = NewSQLTransformConfig()
-	}
-	config.SourceDBType = db.Oracle
-	config.TargetDBType = db.EDB
-	return Translate(sql, config)
-}
-
-func oracleToPostgreSQL(sql string) *SQLTransformResult {
-	config := NewSQLTransformConfig()
-	return OracleToPostgreSQLWithConfig(sql, config)
-}
-
-func OracleToPostgreSQLWithConfig(sql string, config *SQLTransformConfig) *SQLTransformResult {
-	if config == nil {
-		config = NewSQLTransformConfig()
-	}
-	config.SourceDBType = db.Oracle
-	config.TargetDBType = db.PostgreSQL
-	return Translate(sql, config)
-}
-
-func MySQLToOracle(sql string) *SQLTransformResult {
-	config := NewSQLTransformConfig()
-	return MySQLToOracleWithConfig(sql, config)
-}
-
-func MySQLToOracleWithConfig(sql string, config *SQLTransformConfig) *SQLTransformResult {
-	if config == nil {
-		config = NewSQLTransformConfig()
-	}
-	config.SourceDBType = db.MySQL
-	config.TargetDBType = db.Oracle
-	return Translate(sql, config)
-}
-
-func Translate(sql string, config *SQLTransformConfig) *SQLTransformResult {
-
-	sourceDBType := config.SourceDBType
-	targetDBType := config.TargetDBType
-
-	result := NewSQLTransformResult(sql)
-
-	stmts := factory.ParseStatementsByDBType(sql, sourceDBType)
-
-	config.Stmts = stmts
+	transformConfig.Stmts = stmts
 	// buffers := newStringBuilder()
 
 	// outputConfig := newSQLOutputConfig()
 
-	// transformVisitors := factory.CreateASTTranslateVisitors(config)
+	visitors := CreateASTTranslateVisitors(transformConfig)
 
 	for i := 0; i < len(stmts); i++ {
 
-		config.Index = i
+		transformConfig.Index = i
 		stmt := stmts[i]
 		stmt.SetDBType(sourceDBType)
 		stmt.SetTargetDBType(targetDBType)
 
-		// for _, visitor := range transformVisitors {
-		//
-		// 	newStmt := stmts[i]
-		// 	if stmt != newStmt {
-		// 		i = i - 1
-		// 		break
-		// 	}
+		for _, v := range visitors {
 
-		// accept.Accept(visitor, stmt)
+			newStmt := stmts[i]
+			if stmt != newStmt {
+				i = i - 1
+				break
+			}
 
-		// result.changes.addAll(visitor.getChanges())
-		// result.warnnings.addAll(visitor.getWarnnings())
-		// result.errors.addAll(visitor.getErrors())
-		// }
+			visitor.Accept(v, stmt)
+			transformResult.AddChanges(v.Changes())
+			transformResult.AddWarnnings(v.Warnnings())
+			transformResult.AddErrors(v.Errors())
+		}
 	}
 
 	// output
-	for i := 0; i < len(stmts); i++ {
-		stmt := stmts[i]
+	var builders strings.Builder
+	for i, stmt := range stmts {
 
 		if i != len(stmts)-1 {
 			stmt.SetAfterSemi(true)
 		}
 
-		// var builder strings.Builder
+		var builder strings.Builder
+		outputVisitor := sql.CreateASTOutputVisitor(&builder, targetDBType, transformConfig.SQLOutputConfig)
+		visitor.Accept(outputVisitor, stmt)
 
-		// outputVisitor := factory.CreateASTOutputVisitor(&builder, outputConfig, sourceDBType, targetDBType)
-		// SQLUtils.outputVisitor(stmt, outputVisitor)
+		if builder.Len() > 0 {
+			if i != len(stmts)-1 {
+				outputVisitor.WriteLn()
+			}
+			builders.WriteString(builder.String())
+		}
 
-		// if (buffer.length() > 0) {
-		// 	if (i != stmtList.size()-1) {
-		// 		outputVisitor.println()
-		// 	}
-		// 	buffers.append(buffer)
-		// }
-
-		// result.addResult(SQLTransformResult.SQLResult.of(stmt.getObjectType(), buffer.toString()))
+		transformResult.AddObjectResult(result.NewSQLObjectResult(stmt.ObjectType(), builder.String()))
 	}
-
-	// result.targetSql = buffers.toString()
+	transformResult.TargetSQL = builders.String()
 
 	// config.stmtList.clear()
 
-	return result
+	return transformResult
 }
 
-type SQLTransformResult struct {
-	sourceSql string
-	targetSql string
-	// results []*SQLResult
-
-	//
-	// public final Set<SQLTransformError> errors = new HashSet<SQLTransformError>()
-	// public final Set<SQLTransformChange> changes = new HashSet<SQLTransformChange>()
-	// public final Set<SQLTransformWarnning> warnnings = new HashSet<SQLTransformWarnning>()
-
-	createTableCount int
-
-	insertCount            int
-	deleteCount            int
-	selectCount            int
-	updateCount            int
-	createTypeCount        int
-	createPackageCount     int
-	createPackageBodyCount int
-	createFunctionCount    int
-	createProcedureCount   int
-}
-
-func NewSQLTransformResult(sourceSql string) *SQLTransformResult {
-	var x SQLTransformResult
-	x.sourceSql = sourceSql
-	return &x
-}
-
-func (x *SQLTransformResult) AddResult(result *SQLResult) {
-	if result == nil {
-		return
+func CreateASTTranslateVisitors(transformConfig *config.SQLTransformConfig) []visitor2.ISQLASTTransformVisitor {
+	if transformConfig == nil {
+		panic("Translate config is null.")
 	}
-	// results.add(result)
-}
+	sourceDBType := transformConfig.SourceDBType
+	targetDBType := transformConfig.TargetDBType
+	targetDBVersion := transformConfig.TargetDBVersion
+	if sourceDBType == "" {
+		panic("source database type is null.")
+	}
+	if targetDBType == "" {
+		panic("target database type is null.")
+	}
+	if targetDBVersion == "" {
+		panic("target database version is null.")
+	}
 
-type SQLResult struct {
-	objectType db.ObjectType
-	targetSql  string
-}
+	var visitors []visitor2.ISQLASTTransformVisitor
+	switch sourceDBType {
+	case db.Oracle:
+		switch targetDBType {
+		case db.Oracle:
+			// visitors.add(newOracleSQLRemovePropertyASTVisitor(config))
+			break
+		// case EDB:
+		// 	visitors.add(newOracleSQLRemovePropertyASTVisitor(config))
+		// 	visitors.add(newOracle2EDBMixRemoveDoubleQuotesASTVisitor(config))
+		// switch (targetDBVersion) {
+		// 	case VERSION_9_6:
+		// 		visitors.add(new
+		// 		Oracle2EDBVersion9_6ASTTransformVisitor(config))
+		// 		break
+		// 	case VERSION_10:
+		// 		visitors.add(new
+		// 		Oracle2EDBVersion10ASTTransformVisitor(config))
+		// 		break
+		// 	}
+		// break
+		case db.PostgreSQL:
+			// visitors.add(newOracleSQLRemovePropertyASTVisitor(config))
+			// visitors.add(newOracle2EDBMixRemoveDoubleQuotesASTVisitor(config))
+			switch targetDBVersion {
+			case postgresql.Version_9_6:
+				// visitors.add(newOracle2PostgreSQLVersion9_6ASTTransformVisitor(config))
+				break
+			case postgresql.Version_10:
+				// visitors.add(newOracle2PostgreSQLVersion10ASTTransformVisitor(config))
+				break
+			}
+			break
+		case db.MySQL:
+			switch targetDBVersion {
+			case mysql.Version_5_6:
+				visitors = append(visitors, mysql2.NewOracle2MySQLV5_6ASTTransformVisitor(transformConfig))
+			case mysql.Version_5_7:
+				visitors = append(visitors, mysql2.NewOracle2MySQLV5_7ASTTransformVisitor(transformConfig))
+			// visitors.add(newSQLWithClauseSubQueryTranslateAndRemoveASTVisitor(config))
+			// visitors.add(newSQLCreateViewSubQueryTableRefToCreateViewASTVisitor(config))
+			case mysql.Version_8_0:
+				visitors = append(visitors, mysql2.NewOracle2MySQLV8_0ASTTransformVisitor(transformConfig))
+			default:
+				break
+			}
+			// visitors.add(newSQLOuterJoinToJoinASTVisitor(config))
+			// visitors.add(newSQLRowNumToLimitASTVisitor(config))
+			// visitors.add(newOracleSQLIntersectOrMinusToJoinASTVisitor(config))
+			// visitors.add(newSQLBindVarToVarASTVisitor(config))
 
-func NewSQLResult(objectType db.ObjectType, targetSql string) *SQLResult {
-	var x SQLResult
-	x.objectType = objectType
-	x.targetSql = targetSql
-	return &x
+			switch targetDBVersion {
+			case mysql.Version_5_6:
+				// visitors.add(newOracle2MySQLVersion5_6ASTTransformVisitor(config))
+				break
+			case mysql.Version_5_7:
+				// visitors.add(newOracle2MySQLVersion5_7ASTTransformVisitor(config))
+				break
+			case mysql.Version_8_0:
+				// visitors.add(newOracle2MySQLVersion8_0ASTTransformVisitor(config))
+				break
+			default:
+				break
+			}
+
+			// visitors.add(newSQLRenameColumnASTVisitor(config))
+			// visitors.add(newSQLRenameObjectNameASTVisitor(config))
+			//
+			// visitors.add(newSQLDefaultClauseToTriggerAndRemoveASTVisitor(config))
+
+			if transformConfig.IsRemoveSchema {
+				// visitors.add(newSQLRemoveSchemaASTVisitor(config))
+			}
+
+			// visitors.add(newSQLOptimizationASTVisitor(config))
+			// visitors.add(newSQLAddReverseQuotesASTVisitor(config))
+			break
+		}
+		break
+
+	default:
+		panic("")
+	}
+	return visitors
 }

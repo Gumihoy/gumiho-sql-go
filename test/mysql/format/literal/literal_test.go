@@ -2,60 +2,133 @@ package literal
 
 import (
 	"fmt"
-	"gumihoy.com/sql/dbtype"
-	"gumihoy.com/sql/format"
+	"github.com/Gumihoy/gumiho-sql-go/sql"
+	db "github.com/Gumihoy/gumiho-sql-go/sql/db"
+	"strings"
 	"testing"
 )
 
 func Test_Literal_String_0(t *testing.T) {
-	sql := "SELECT 'hello', '\"hello\"', '\"\"hello\"\"', 'hel''lo', '\\'hello';"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT 'hello', '\"hello\"', '\"\"hello\"\"', 'hel''lo', '\\'hello';"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT 'hello', '"hello"', '""hello""', 'hel\'lo', '\'hello';`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 func Test_Literal_String_1(t *testing.T) {
-	sql := "SELECT 'This\\nIs\\nFour\\nLines';"
-	formatSQL := format.Format(sql, db.MySQL)
-	fmt.Println(sql, formatSQL)
+	sourceSQL := "SELECT 'This\\nIs\\nFour\\nLines';"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
+	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT 'This\nIs\nFour\nLines';`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 func Test_Literal_String_2(t *testing.T) {
-	sql := "SELECT 'disappearing\\ backslash'"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT 'disappearing\\ backslash'"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT 'disappearing\ backslash'`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 
 
 func Test_Literal_Numeric_0(t *testing.T) {
-	sql := "SELECT (-11-5)"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT (-11-5)"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT (-11 - 5)`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 func Test_Literal_Numeric_1(t *testing.T) {
-	sql := "SELECT 1.2E3, 1.2E-3, -1.2E3, -1.2E-3"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT 1.2E3, 1.2E-3, -1.2E3, -1.2E-3"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT 1.2E3, 1.2E-3, -1.2E3, -1.2E-3`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 
 
 func Test_Literal_DATE_0(t *testing.T) {
-	sql := "SELECT DATE '2015-07-21'"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT DATE '2015-07-21'"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT DATE '2015-07-21'`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 func Test_Literal_TIME_0(t *testing.T) {
-	sql := "SELECT TIME ''"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT TIME ''"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT TIME ''`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 func Test_Literal_TIMESTAMP_0(t *testing.T) {
-	sql := "SELECT TIMESTAMP ''"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT TIMESTAMP ''"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT TIMESTAMP ''`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 
@@ -63,9 +136,18 @@ func Test_Literal_TIMESTAMP_0(t *testing.T) {
 
 
 func Test_Literal_BOOLEAN_0(t *testing.T) {
-	sql := "SELECT TRUE, true, FALSE, false, aaaaaaaaaaaaaaaaaaaaaaaa;"
-	formatSQL := format.Format(sql, db.MySQL)
+	sourceSQL := "SELECT TRUE, true, FALSE, false, aaaaaaaaaaaaaaaaaaaaaaaa;"
+	formatSQL := sql.Format(sourceSQL, db.MySQL)
+
+	fmt.Println(sourceSQL)
+	fmt.Println("----------------------")
 	fmt.Println(formatSQL)
+
+	targetSQL := `SELECT true, true, false, false, aaaaaaaaaaaaaaaaaaaaaaaa;`
+
+	if !strings.EqualFold(formatSQL, targetSQL) {
+		t.Error()
+	}
 }
 
 
